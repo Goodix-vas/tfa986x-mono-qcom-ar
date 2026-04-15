@@ -748,6 +748,12 @@ static ssize_t tfa98xx_dbgfs_rpc_read(struct file *file,
 	enum tfa98xx_error error;
 	struct tfa_device *tfa0 = NULL;
 
+#if defined(TFA_PLATFORM_QUALCOMM)
+	pr_err("%s: QC AudioReach does not support IPC in kernel\n",
+			__func__);
+	return -ENODEV;
+#endif
+
 	if (tfa98xx->tfa == NULL) {
 		pr_debug("[0x%x] dsp is not available\n", tfa98xx->i2c->addr);
 		return -ENODEV;
@@ -808,6 +814,12 @@ static ssize_t tfa98xx_dbgfs_rpc_send(struct file *file,
 	enum tfa98xx_error error;
 	struct tfa_device *tfa0 = NULL;
 	int ret = 0;
+
+#if defined(TFA_PLATFORM_QUALCOMM)
+	pr_err("%s: QC AudioReach does not support IPC in kernel\n",
+			__func__);
+	return -ENODEV;
+#endif
 
 	if (tfa98xx->tfa == NULL) {
 		pr_debug("[0x%x] dsp is not available\n", tfa98xx->i2c->addr);
@@ -889,6 +901,12 @@ static ssize_t tfa98xx_dbgfs_dsp_read(struct file *file,
 	uint8_t *buffer;
 	struct tfa_device *tfa0 = NULL;
 
+#if defined(TFA_PLATFORM_QUALCOMM)
+	pr_err("%s: QC AudioReach does not support IPC in kernel\n",
+			__func__);
+	return -ENODEV;
+#endif
+
 	if (tfa98xx->tfa == NULL) {
 		pr_debug("[0x%x] dsp is not available\n", tfa98xx->i2c->addr);
 		return -ENODEV;
@@ -957,6 +975,12 @@ static ssize_t tfa98xx_dbgfs_dsp_write(struct file *file,
 	int ret = 0;
 	struct tfa_device *tfa0 = NULL;
 	uint8_t *buffer;
+
+#if defined(TFA_PLATFORM_QUALCOMM)
+	pr_err("%s: QC AudioReach does not support IPC in kernel\n",
+			__func__);
+	return -ENODEV;
+#endif
 
 	if (tfa98xx->tfa == NULL) {
 		pr_debug("[0x%x] dsp is not available\n", tfa98xx->i2c->addr);
@@ -3442,7 +3466,7 @@ static void tfa98xx_container_loaded
 		return;
 	}
 
-/* TEMPORARY, until TFA device is probed before tfa_ext is called */
+	/* TEMPORARY, until TFA device is probed before tfa_ext is called */
 	if (tfa98xx->tfa->is_probus_device) {
 		if (!tfa_get_ipc_loaded()) {
 			/* Q_PLATFORM: IPC ON PAL TO COMMUNICATE BETWEEN HAL AND ADSP */
@@ -3564,7 +3588,7 @@ static int tfa98xx_load_container(struct tfa98xx *tfa98xx)
 		ret = request_firmware_nowait(THIS_MODULE,
 			FW_ACTION_HOTPLUG,
 			fw_name, tfa98xx->dev, GFP_KERNEL,
-			tfa98xx, tfa98xx_container_loaded);	
+			tfa98xx, tfa98xx_container_loaded);
 #endif
 		/* wait until driver completes loading */
 		msleep_interruptible(20);
@@ -4516,6 +4540,7 @@ static int tfa98xx_parse_dummy_cal_dt(struct device *dev,
 	return 0;
 }
 
+#if MAX_CHANNELS >= 2
 static int tfa98xx_parse_inchannel_dt(struct device *dev,
 	struct tfa98xx *tfa98xx, struct device_node *np)
 {
@@ -4542,6 +4567,7 @@ static int tfa98xx_parse_inchannel_dt(struct device *dev,
 
 	return 0;
 }
+#endif
 
 static ssize_t tfa98xx_reg_write(struct file *filp, struct kobject *kobj,
 	struct bin_attribute *bin_attr,
@@ -5320,8 +5346,12 @@ struct tfa_device *tfa98xx_get_tfa_device_from_channel(int channel)
 		return tfachnset[channel];
 
 	list_for_each_entry(tfa98xx, &tfa98xx_device_list, list) {
+#if MAX_CHANNELS == 1
+		nchannel = 0;
+#else
 		nchannel = tfa98xx_get_cnt_bitfield(tfa98xx->tfa,
 			TFAxx_FAM(TDMSPKS));
+#endif
 		if (nchannel == channel) {
 			ntfa = tfa98xx->tfa;
 			tfachnset[channel] = ntfa;
@@ -5673,6 +5703,12 @@ int tfa98xx_update_spkt_data(int idx)
 	int pm = 0;
 	int active_dev = 0;
 
+#if defined(TFA_PLATFORM_QUALCOMM)
+	pr_info("%s: QC AudioReach does not support IPC in kernel\n",
+			__func__);
+	return DEFAULT_REF_TEMP;
+#endif
+
 	if (tfa == NULL)
 		return DEFAULT_REF_TEMP; /* unused device */
 	if (tfa->tfa_family == 0)
@@ -5782,11 +5818,13 @@ int tfa98xx_write_sknt_control(int idx, int value)
 		DEFAULT_REF_TEMP, DEFAULT_REF_TEMP
 	};
 	static int update[MAX_HANDLES];
-#if 0 // [TODO]
-	struct tfa_device *ntfa = tfa98xx_get_tfa_device_from_index(idx);
-	int group = 0;
-#endif
 	int active_dev = 0;
+
+#if defined(TFA_PLATFORM_QUALCOMM)
+	pr_err("%s: QC AudioReach does not support IPC in kernel\n",
+			__func__);
+	return -ENODEV;
+#endif
 
 	if (tfa == NULL)
 		return -ENODEV;
@@ -5841,20 +5879,6 @@ int tfa98xx_write_sknt_control(int idx, int value)
 			__func__);
 		goto tfa98xx_write_sknt_control_exit;
 	}
-
-#if 0 // [TODO]
-	if (tfa_is_active_device(ntfa)) {
-		group = idx * ID_BLACKBOX_MAX;
-		if (ntfa->log_data[group + ID_MAXTSURF_LOG]
-			< value)
-			ntfa->log_data[group + ID_MAXTSURF_LOG]
-				= value;
-		if (value > TSURFMAX)
-			ntfa->log_data[group + ID_OVERTSURFMAX_COUNT]++;
-	}
-#endif
-
-	//pm = tfa_get_power_state(idx);
 
 	pr_info("%s: tfa_stc - dev %d - set surface temperature (%d)\n",
 		__func__, idx, value);
@@ -6084,7 +6108,7 @@ retry:
 	}
 
 #if defined(TFA_PLATFORM_QUALCOMM)
-	tfa98xx->tfa->dummy_cal= DUMMY_CALIBRATION_DATA;
+	tfa98xx->tfa->dummy_cal = DUMMY_CALIBRATION_DATA;
 #endif
 	if (np) {
 		ret = tfa98xx_parse_limit_cal_dt(&i2c->dev, tfa98xx, np);
@@ -6102,18 +6126,21 @@ retry:
 				/* set default value instead */
 			}
 #if defined(TFA_PLATFORM_QUALCOMM)
-			tfa98xx->tfa->dummy_cal= tfa98xx->tfa->mohm[0];
+			tfa98xx->tfa->dummy_cal = tfa98xx->tfa->mohm[0];
 			dev_info(&i2c->dev, "[0x%x] dummy_cal : %d\n", i2c->addr, tfa98xx->tfa->dummy_cal);
 #endif
 		}
 		tfa98xx->tfa->mtpex = 1; // mtpex is 1 even in case the dummy cal is used
 		dev_info(&i2c->dev, "[0x%x] cal : %d\n", i2c->addr, tfa98xx->tfa->mohm[0]);
+		tfa98xx->tfa->inchannel = 0;
+#if MAX_CHANNELS >= 2
 		ret = tfa98xx_parse_inchannel_dt(&i2c->dev, tfa98xx, np);
 		if (ret) {
 			dev_err(&i2c->dev,
 				"Failed to parse DT node for inchannel\n");
 			/* set default value instead */
 		}
+#endif
 	}
 
 	/* Modify the stream names, by appending the i2c device address.

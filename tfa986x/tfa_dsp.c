@@ -40,7 +40,7 @@ static TFA9866_IRQ_INFO;
  */
 static DEFINE_MUTEX(dev_lock);
 static DEFINE_MUTEX(dsp_msg_lock);
-static int dsp_cal_value[MAX_CHANNELS] = {-1, -1};
+static int dsp_cal_value[2] = {-1, -1};
 
 static enum tfa98xx_error tfa_calibration_range_check(struct tfa_device *tfa,
 	unsigned int channel, int mohm);
@@ -598,8 +598,12 @@ int tfa_get_channel_from_dev_idx(struct tfa_device *tfa, int dev_idx)
 	if (channelset[dev_idx] != TFA_NOT_FOUND)
 		return channelset[dev_idx];
 
+#if MAX_CHANNELS == 1
+	channel = 0;
+#else
 	channel = (int)tfa98xx_get_cnt_bitfield(tfa,
 		TFAxx_FAM(TDMSPKS)) % MAX_CHANNELS;
+#endif
 	channelset[dev_idx] = channel;
 
 	return channel;
@@ -614,9 +618,15 @@ int tfa_get_dev_idx_from_inchannel(int inchannel)
 {
 	struct tfa_device *ntfa;
 	int i;
+#if MAX_CHANNELS == 1
+	static int devset[MAX_CHANNELS] = {TFA_NOT_FOUND};
+#elif MAX_CHANNELS == 2
 	static int devset[MAX_CHANNELS] = {
 		TFA_NOT_FOUND, TFA_NOT_FOUND
 	};
+#else
+	static int devset[MAX_CHANNELS];
+#endif
 
 	if (inchannel < 0 || inchannel >= MAX_CHANNELS)
 		return TFA_NOT_FOUND; /* invalid inchannel */
@@ -889,6 +899,14 @@ tfa98xx_check_ic_rom_version(struct tfa_device *tfa,
 				| lsb_revid; /* full revid */
 			/* full revid */
 			if (devid != tfa->revid && revid != tfa->revid) {
+				/* TFA9866 N3Var is compatible to N3A1 CNT */
+				if (tfa->revid == 0x202a66) { /* HW : TFA9866 N3Var */
+					if (devid == 0x201a66 || revid == 0x201a66) { /* CNT : TFA9866 N3A1 */
+						pr_info("%s: TFA9866 N3Var container patch: 0x%08x:0x%08x\n",
+							__func__, revid, devid);
+						return TFA98XX_ERROR_OK;
+					}
+				}
 				pr_err("container patch and HW mismatch: expected: 0x%08x, actual 0x%08x\n",
 					tfa->revid, revid);
 				return TFA98XX_ERROR_NOT_SUPPORTED;

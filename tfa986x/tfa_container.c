@@ -399,72 +399,12 @@ enum tfa98xx_error tfa_cont_write_file(struct tfa_device *tfa,
 	struct tfa_header *hdr = (struct tfa_header *)file->data;
 	enum tfa_header_type type;
 	int size;
-	char sub_ver_string[8] = {0};
-	uint16_t subversion = 0;
-	int kerr;
 	char *data_buf;
-	struct tfa_device *ntfa;
-	int i;
 
 	if (tfa_cont_is_config_loaded(tfa))
 		return err;
 
-	if (tfa->verbose)
-		tfa_cont_show_header(hdr);
-
 	type = (enum tfa_header_type)hdr->id;
-	if ((type == msg_hdr)
-		|| ((type == volstep_hdr) && (tfa->tfa_family == 2))) {
-		sub_ver_string[0] = hdr->subversion[0];
-		sub_ver_string[1] = hdr->subversion[1];
-		sub_ver_string[2] = '\0';
-
-		kerr = kstrtou16(sub_ver_string, 16, &subversion);
-		if (kerr < 0)
-			pr_err("%s: error in readaing subversion\n", __func__);
-
-		if ((subversion > 0)
-			&& (((hdr->customer[0]) == 'A')
-			&& ((hdr->customer[1]) == 'P')
-			&& ((hdr->customer[2]) == 'I')
-			&& ((hdr->customer[3]) == 'V'))) {
-			pr_debug("%s: msg subversion 0x%x, custom v%d.%d.%d.%d\n",
-				__func__, subversion,
-				hdr->customer[4],
-				hdr->customer[5],
-				hdr->customer[6],
-				hdr->customer[7]);
-
-			if (tfa->fw_itf_ver[0] == 0xff) {
-				err = tfa_get_fw_api_version(tfa,
-					(unsigned char *)&tfa->fw_itf_ver[0]);
-				if (err) {
-					pr_debug("[%s] cannot get FW API ver, error = %d\n",
-						__func__, err);
-					err = TFA98XX_ERROR_OK;
-				} else {
-					for (i = 0; i < tfa->dev_count; i++) {
-						ntfa = tfa98xx_get_tfa_device_from_index(i);
-
-						if (ntfa == NULL)
-							continue;
-						if (ntfa->dev_idx == tfa->dev_idx)
-							continue;
-
-						memcpy(&ntfa->fw_itf_ver[0],
-							&tfa->fw_itf_ver[0], 4);
-					}
-				}
-			} else {
-				pr_debug("%s: checked - itf v%d.%d.%d.%d\n",
-					__func__,
-					tfa->fw_itf_ver[0],
-					tfa->fw_itf_ver[1],
-					tfa->fw_itf_ver[2],
-					tfa->fw_itf_ver[3]);
-			}
-		}
-	}
 
 	switch (type) {
 	case msg_hdr: /* generic DSP message */
@@ -1009,8 +949,6 @@ enum tfa98xx_error tfa_cont_write_files_prof(struct tfa_device *tfa,
 			file = (struct tfa_file_dsc *)
 				(prof->list[i].offset + (uint8_t *)tfa->cnt);
 			patchfile = (struct tfa_patch_file *)&file->data;
-			if (tfa->verbose)
-				tfa_cont_show_header(&patchfile->hdr);
 
 			/* size is total length */
 			size = patchfile->hdr.size

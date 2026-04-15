@@ -22,7 +22,11 @@
 
 /* 2 channels per SB */
 #define MAX_HANDLES 4
+#if defined(TFA_STEREO_NODE)
 #define MAX_CHANNELS 2
+#else
+#define MAX_CHANNELS 1
+#endif
 
 /* max. length of a alsa mixer control name */
 #define MAX_CONTROL_NAME 48
