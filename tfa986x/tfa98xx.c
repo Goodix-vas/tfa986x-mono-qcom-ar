@@ -6352,6 +6352,26 @@ int tfa98xx_get_init_state(int dev_idx)
 }
 EXPORT_SYMBOL(tfa98xx_get_init_state);
 
+int tfa98xx_get_dcmcc(struct tfa_device *tfa)
+{
+	int dcmcc = -1;
+	if (tfa)
+		dcmcc = tfa_get_bf(tfa, TFA9866_BF_DCMCC);
+
+	pr_info("%s: get dcmcc %d\n", __func__, dcmcc);
+	return dcmcc;
+}
+EXPORT_SYMBOL(tfa98xx_get_dcmcc);
+
+void tfa98xx_set_dcmcc(struct tfa_device *tfa, int dcmcc)
+{
+	if (tfa) {
+		pr_info("%s: set dcmcc %d\n", __func__, dcmcc);
+		tfa_set_bf(tfa, TFA9866_BF_DCMCC, (uint16_t)dcmcc);
+	}
+}
+EXPORT_SYMBOL(tfa98xx_set_dcmcc);
+
 #if KERNEL_VERSION(6, 1, 0) <= LINUX_VERSION_CODE
 static void tfa98xx_i2c_remove(struct i2c_client *i2c)
 #else

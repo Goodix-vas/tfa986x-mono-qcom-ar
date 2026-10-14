@@ -67,6 +67,12 @@ static ssize_t reinit_store(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t size);
 static DEVICE_ATTR(reinit, 0664, reinit_show, reinit_store);
 
+static ssize_t dcmcc_show(struct device *dev,
+	struct device_attribute *attr, char *buf);
+static ssize_t dcmcc_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t size);
+static DEVICE_ATTR(dcmcc, 0664, dcmcc_show, dcmcc_store);
+
 static struct attribute *tfa_cal_attr[] = {
 	&dev_attr_rdc.attr,
 	&dev_attr_temp.attr,
@@ -80,6 +86,7 @@ static struct attribute *tfa_cal_attr[] = {
 	&dev_attr_config.attr,
 #endif
 	&dev_attr_reinit.attr,
+	&dev_attr_dcmcc.attr,
 	NULL,
 };
 
@@ -604,6 +611,47 @@ static ssize_t reinit_store(struct device *dev,
 		tfa98xx_reinit();
 		reinit_count++;
 	}
+
+	return count;
+}
+
+static ssize_t dcmcc_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	int size = 0, dcmcc = 6;
+	char dcmcc_str[8] = {0};
+	struct tfa_device *tfa = NULL;
+
+	tfa = tfa98xx_get_tfa_device_from_index(0);
+	dcmcc = tfa98xx_get_dcmcc(tfa);
+
+	snprintf(dcmcc_str, 8, "%d", dcmcc);
+
+	size = snprintf(buf, strlen(dcmcc_str) + 1,
+		"%s", dcmcc_str);
+
+	return size;
+}
+
+static ssize_t dcmcc_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	int ret = 0, dcmcc = 0;
+	struct tfa_device *tfa = NULL;
+
+	tfa = tfa98xx_get_tfa_device_from_index(0);
+
+	ret = kstrtou32(buf, 8, &dcmcc);
+	if (ret < 0) {
+		pr_err("%s: wrong value: %s\n", __func__, buf);
+		return -EINVAL;
+	}
+	if (dcmcc > 15) {
+		pr_err("%s: wrong dcmcc value: %d\n", __func__, dcmcc);
+		return -EINVAL;
+	}
+	pr_info("%s: set dcmcc %d\n", __func__, dcmcc);
+	tfa98xx_set_dcmcc(tfa, dcmcc);
 
 	return count;
 }

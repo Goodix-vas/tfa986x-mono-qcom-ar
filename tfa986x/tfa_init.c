@@ -470,6 +470,7 @@ static enum tfa98xx_error tfa986x_specific(struct tfa_device *tfa)
 		bf_value = tfa_get_bf(tfa, TFA9866_BF_SPARE_F0_15_10);
 		if (bf_value >= 0)
 			tfa_set_bf(tfa, TFA9866_BF_CS_KTEMP, (uint16_t)bf_value);
+		tfa_set_bf(tfa, TFA9866_BF_DCMCC, 0x7); /* for dpm mode handling */
 
 		/* ----- generated code start(V8)----- */
 		/* -----  version 6 ----- */

@@ -712,6 +712,9 @@ enum tfa98xx_error tfa_read_tspkr(struct tfa_device *tfa, int *spkt);
 
 enum tfa98xx_error tfa_write_volume(struct tfa_device *tfa, int *sknt);
 
+int tfa98xx_get_dcmcc(struct tfa_device *tfa);
+void tfa98xx_set_dcmcc(struct tfa_device *tfa, int dcmcc);
+
 #ifdef __cplusplus
 }
 #endif
